@@ -14,7 +14,7 @@ import (
 
 func TestTarantoolClient(t *testing.T) {
 	// Настройка подключения
-	client, err := NewTarantoolClient("localhost:3301", "test", "test")
+	client, err := NewTarantoolClient("0.0.0.0:3301", "test", "test")
 	require.NoError(t, err, "Failed to connect to Tarantool")
 	defer client.Close()
 
