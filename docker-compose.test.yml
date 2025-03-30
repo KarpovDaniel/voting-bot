@@ -1,0 +1,21 @@
+services:
+  tarantool-test:
+    image: tarantool/tarantool:3.1.2
+    ports:
+      - "3301:3301"
+    environment:
+      - TARANTOOL_USER=test
+      - TARANTOOL_PASSWORD=test
+    volumes:
+      - ./tarantool/tarantool-config.lua:/app/tarantool-config.lua  # Монтирование конфига
+    command: tarantool /app/tarantool-config.lua  # Запуск с конфигом
+
+  voting-bot-test:
+    build:
+      context: .
+      target: test
+    environment:
+      - TARANTOOL_ADDRESS=tarantool-test:3301
+      - TARANTOOL_USER=test
+      - TARANTOOL_PASSWORD=test
+    command: ["go", "test", "-v", "./..."]
