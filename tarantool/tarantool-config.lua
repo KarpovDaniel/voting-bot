@@ -24,7 +24,6 @@ box.once('init', function()
                 {name = 'creator_id', type = 'string'},
                 {name = 'question', type = 'string'},
                 {name = 'options', type = 'array'},
-                {name = 'created_at', type = 'unsigned'},
                 {name = 'status', type = 'string'}
             }
         })
@@ -34,15 +33,25 @@ box.once('init', function()
 
     -- Создание пространства votes
     if not box.space.votes then
-        box.schema.create_space('votes', {
+        box.schema.space.create("votes", {
             format = {
-                {name = 'poll_id', type = 'string'},
-                {name = 'user_id', type = 'string'},
-                {name = 'option', type = 'string'}
+                {name = "poll_id", type = "string"},
+                {name = "user_id", type = "string"},
+                {name = "option_id", type = "string"}
             }
         })
-        box.space.votes:create_index('primary', {parts = {'poll_id', 'user_id'}})
-        box.space.votes:create_index('poll_idx', {parts = {'poll_id'}})
+
+        -- Первичный индекс (если нужно)
+        box.space.votes:create_index("primary", {
+            parts = {"poll_id", "user_id"},
+            unique = true
+        })
+
+        -- Вторичный индекс для поиска по poll_id (опционально)
+        box.space.votes:create_index("poll_idx", {
+            parts = {"poll_id"},
+            unique = false
+        })
         print("[INIT] Space 'votes' created")
     end
 

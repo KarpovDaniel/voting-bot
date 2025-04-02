@@ -66,19 +66,18 @@ func NewTarantoolClient(address, user, password string) (*TarantoolClient, error
 	return &TarantoolClient{conn: conn}, nil
 }
 
-func (tc *TarantoolClient) CreatePoll(ctx context.Context, pollID, creatorID, question string, options []string) error {
+func (tc *TarantoolClient) CreatePoll(pollID, creatorID, question string, options []string) error {
 	_, err := tc.conn.Insert("polls", []interface{}{
 		pollID,
 		creatorID,
 		question,
 		options,
-		uint64(time.Now().Unix()),
 		"active",
 	})
 	return err
 }
 
-func (tc *TarantoolClient) GetPoll(ctx context.Context, pollID string) (*Poll, error) {
+func (tc *TarantoolClient) GetPoll(pollID string) (*Poll, error) {
 	resp, err := tc.conn.Select("polls", "primary", 0, 1, tarantool.IterEq, []interface{}{pollID})
 	if err != nil {
 		return nil, err
@@ -94,13 +93,12 @@ func (tc *TarantoolClient) GetPoll(ctx context.Context, pollID string) (*Poll, e
 		CreatorID: data[1].(string),
 		Question:  data[2].(string),
 		Options:   convertToStringSlice(data[3].([]interface{})),
-		CreatedAt: data[4].(int64),
-		Status:    data[5].(string),
+		Status:    data[4].(string),
 	}, nil
 }
 
-func (tc *TarantoolClient) AddVote(ctx context.Context, pollID, userID, option string) error {
-	poll, err := tc.GetPoll(ctx, pollID)
+func (tc *TarantoolClient) AddVote(pollID, userID, option string) error {
+	poll, err := tc.GetPoll(pollID)
 	if err != nil {
 		return err
 	}
@@ -118,8 +116,8 @@ func (tc *TarantoolClient) AddVote(ctx context.Context, pollID, userID, option s
 	return err
 }
 
-func (tc *TarantoolClient) GetResults(ctx context.Context, pollID string) (*VoteResult, error) {
-	poll, err := tc.GetPoll(ctx, pollID)
+func (tc *TarantoolClient) GetResults(pollID string) (*VoteResult, error) {
+	poll, err := tc.GetPoll(pollID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,19 +149,30 @@ func (tc *TarantoolClient) GetResults(ctx context.Context, pollID string) (*Vote
 	return result, nil
 }
 
-func (tc *TarantoolClient) UpdatePollStatus(ctx context.Context, pollID, status string) error {
+func (tc *TarantoolClient) UpdatePollStatus(pollID, status string) error {
 	_, err := tc.conn.Update("polls", "primary", []interface{}{pollID}, []interface{}{
-		[]interface{}{"=", 5, status},
+		[]interface{}{"=", 4, status},
 	})
 	return err
 }
 
-func (tc *TarantoolClient) DeletePoll(ctx context.Context, pollID string) error {
+func (tc *TarantoolClient) DeletePoll(pollID string) error {
 	if _, err := tc.conn.Delete("polls", "primary", []interface{}{pollID}); err != nil {
 		return err
 	}
 
-	_, err := tc.conn.Delete("votes", "poll_idx", []interface{}{pollID})
+	resp, err := tc.conn.Select("votes", "poll_idx", 0, 0, tarantool.IterEq, []interface{}{pollID})
+	if err != nil {
+		return err
+	}
+
+	// Удалить каждый голос по первичному ключу
+	for _, tuple := range resp.Tuples() {
+		_, err := tc.conn.Delete("votes", "primary", []interface{}{tuple[0], tuple[1]}) // poll_id, user_id
+		if err != nil {
+			return err
+		}
+	}
 	return err
 }
 

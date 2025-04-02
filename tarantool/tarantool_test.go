@@ -1,7 +1,6 @@
 package tarantool
 
 import (
-	"context"
 	"log"
 	"testing"
 	"time"
@@ -24,13 +23,11 @@ func TestTarantoolClient(t *testing.T) {
 	question := "Test Question?"
 	options := []string{"Option1", "Option2"}
 
-	ctx := context.Background()
-
 	t.Run("Create and Get Poll", func(t *testing.T) {
-		err := client.CreatePoll(ctx, pollID, userID, question, options)
+		err := client.CreatePoll(pollID, userID, question, options)
 		assert.NoError(t, err)
 
-		poll, err := client.GetPoll(ctx, pollID)
+		poll, err := client.GetPoll(pollID)
 		require.NoError(t, err)
 		require.NotNil(t, poll)
 
@@ -43,15 +40,15 @@ func TestTarantoolClient(t *testing.T) {
 
 	t.Run("Vote Handling", func(t *testing.T) {
 		// Голосование первого пользователя
-		err := client.AddVote(ctx, pollID, "user1", "1")
+		err := client.AddVote(pollID, "user1", "1")
 		assert.NoError(t, err)
 
 		// Голосование второго пользователя
-		err = client.AddVote(ctx, pollID, "user2", "2")
+		err = client.AddVote(pollID, "user2", "2")
 		assert.NoError(t, err)
 
 		// Проверка результатов
-		results, err := client.GetResults(ctx, pollID)
+		results, err := client.GetResults(pollID)
 		require.NoError(t, err)
 		require.NotNil(t, results)
 
@@ -62,10 +59,10 @@ func TestTarantoolClient(t *testing.T) {
 	})
 
 	t.Run("Update Poll Status", func(t *testing.T) {
-		err := client.UpdatePollStatus(ctx, pollID, "closed")
+		err := client.UpdatePollStatus(pollID, "closed")
 		assert.NoError(t, err)
 
-		poll, err := client.GetPoll(ctx, pollID)
+		poll, err := client.GetPoll(pollID)
 		require.NoError(t, err)
 		require.NotNil(t, poll)
 
@@ -73,21 +70,21 @@ func TestTarantoolClient(t *testing.T) {
 	})
 
 	t.Run("Delete Poll", func(t *testing.T) {
-		err := client.DeletePoll(ctx, pollID)
+		err := client.DeletePoll(pollID)
 		assert.NoError(t, err)
 
-		_, err = client.GetPoll(ctx, pollID)
+		_, err = client.GetPoll(pollID)
 		assert.Error(t, err)
 	})
 
 	t.Run("Negative Cases", func(t *testing.T) {
 		t.Run("Non-existent Poll", func(t *testing.T) {
-			_, err := client.GetPoll(ctx, "non_existent_poll")
+			_, err := client.GetPoll("non_existent_poll")
 			assert.Error(t, err)
 		})
 
 		t.Run("Invalid Option", func(t *testing.T) {
-			err := client.AddVote(ctx, pollID, "user3", "3")
+			err := client.AddVote(pollID, "user3", "3")
 			assert.Error(t, err)
 		})
 	})
